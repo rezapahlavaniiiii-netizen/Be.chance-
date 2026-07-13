@@ -1,110 +1,57 @@
 export default function Home() {
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: 'Arial, sans-serif',
-      color: 'white',
-      padding: '20px'
-    }}>
-      <h1 style={{
-        fontSize: '3rem',
-        marginBottom: '20px',
-        textAlign: 'center',
-        background: 'linear-gradient(90deg, #e94560, #ff6b6b)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent'
-      }}>
-        🎨 Be.Chance
-      </h1>
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex flex-col items-center justify-center p-6">
       
-      <p style={{
-        fontSize: '1.2rem',
-        textAlign: 'center',
-        maxWidth: '600px',
-        lineHeight: '1.8',
-        opacity: 0.8,
-        marginBottom: '40px'
-      }}>
-        یک دلار بده، هنر تصادفی بگیر!
-        <br />
-        هر خرید = یک تصویر منحصربه‌فرد + شانس قرعه‌کشی
-      </p>
-      <div style={{
-        display: 'flex',
-        gap: '20px',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-      }}>
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          padding: '30px',
-          textAlign: 'center',
-          minWidth: '200px',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div style={{fontSize: '2rem', marginBottom: '10px'}}>🖼️</div>
-          <h3>تصویر تصادفی</h3>
-          <p style={{opacity: 0.6}}>هر تصویر منحصربه‌فرد</p>
-        </div>
+      {/* لوگو و عنوان */}
+      <div className="text-center mb-10">
+        <h1 className="text-5xl md:text-7xl font-black text-white mb-4">
+          🎨 <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Be.Chance</span>
+        </h1>
+        <p className="text-xl text-white/70 max-w-md mx-auto leading-relaxed">
+          یک دلار بده، هنر تصادفی بگیر!
+          <br />
+          هر خرید = یک تصویر منحصربه‌فرد + شانس قرعه‌کشی
+        </p>
+      </div>
 
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          padding: '30px',
-          textAlign: 'center',
-          minWidth: '200px',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div style={{fontSize: '2rem', marginBottom: '10px'}}>🎰</div>
-          <h3>قرعه‌کشی</h3>
-          <p style={{opacity: 0.6}}>۵۰٪ جایزه نقدی</p>
+      {/* آمار */}
+      <div className="grid grid-cols-3 gap-4 mb-10 w-full max-w-md">
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center">
+          <div className="text-2xl font-bold text-white">۰</div>
+          <div className="text-xs text-white/50">تصویر فروخته</div>
         </div>
-
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '20px',
-          padding: '30px',
-          textAlign: 'center',
-          minWidth: '200px',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
-          <div style={{fontSize: '2rem', marginBottom: '10px'}}>🏪</div>
-          <h3>بازار</h3>
-          <p style={{opacity: 0.6}}>خرید و فروش تصاویر</p>
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center">
+          <div className="text-2xl font-bold text-green-400">$۰</div>
+          <div className="text-xs text-white/50">جایزه</div>
+        </div>
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center">
+          <div className="sold">---</div>
+          <div className="text-xs text-white/50">قرعه‌کشی</div>
         </div>
       </div>
 
-      <button style={{
-        marginTop: '40px',
-        padding: '15px 40px',
-        fontSize: '1.2rem',
-        background: 'linear-gradient(90deg, #e94560, #ff6b6b)',
-        border: 'none',
-        borderRadius: '50px',
-        color: 'white',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        boxShadow: '0 10px 30px rgba(233,69,96,0.4)'
-      }}>
+      {/* دکمه اصلی */}
+      <button className="w-full max-w-md px-8 py-5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 text-white text-xl font-bold rounded-2xl shadow-lg shadow-purple-500/30 mb-10 active:scale-95 transition-transform">
         🎲 خرید تصویر تصادفی - فقط ۱ دلار
       </button>
 
-      <footer style={{
-        marginTop: '60px',
-        opacity: 0.4,
-        textAlign: 'center'
-      }}>
-        © 2024 Be.Chance - تمامی حقوق محفوظ است
-      </footer>
-    </main>
-  )
+      {/* کارت‌ها */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-md">
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center border border-white/10">
+          <div className="text-4xl mb-3">🖼️</div>
+          <h3 className="text-lg font-bold text-white mb-1">تصویر تصادفی</h3>
+          <p className="text-sm text-white/50">هر تصویر منحصربه‌فرد</p>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center border border-white/10">
+          <div className="text-4xl mb-3">🎰</div>
+          <h3 className="text-lg font-bold text-white mb-1">قرعه‌کشی</h3>
+          <p className="text-sm text-white/50">۵۰٪ جایزه نقدی</p>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center border border-white/10">
+          <div className="text-4xl mb-3">🏪</div>
+          <h3 className="text-lg font-bold text-white mb-1">بازار</h3>
+          <p className="text-sm text-white/50">خرید و فروش تصاویر</p>
+  }
 }
