@@ -25,7 +25,7 @@ export default function Home() {
           <div className="text-xs text-white/50">جایزه</div>
         </div>
         <div className="bg-white/10 backdrop-blur rounded-2xl p-4 text-center">
-          <div className="sold">---</div>
+          <div className="text-2xl font-bold text-yellow-400">---</div>
           <div className="text-xs text-white/50">قرعه‌کشی</div>
         </div>
       </div>
@@ -53,5 +53,13 @@ export default function Home() {
           <div className="text-4xl mb-3">🏪</div>
           <h3 className="text-lg font-bold text-white mb-1">بازار</h3>
           <p className="text-sm text-white/50">خرید و فروش تصاویر</p>
-  }
+        </div>
+      </div>
+
+      {/* فوتر */}
+      <footer className="mt-10 text-white/30 text-sm">
+        © 2024 Be.Chance - تمامی حقوق محفوظ است
+      </footer>
+    </main>
+  )
 }
