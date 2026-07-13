@@ -1,0 +1,140 @@
+// services/lotteryService.js
+const crypto = require('crypto');
+
+class LotteryService {
+    constructor(db, io) {
+        this.db = db;
+        this.io = io;
+    }
+    
+    // ایجاد دوره جدید قرعه‌کشی
+    async createRound(durationDays = 30) {
+        const lastRound = await this.db.query(
+            'SELECT MAX(round_number) as last FROM lottery_rounds'
+        );
+        const roundNumber = (lastRound.rows[0].last || 0) + 1;
+        
+        const startDate = new Date();
+        const endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        const drawDate = new Date(endDate.getTime() + 24 * 60 * 60 * 1000);
+        
+        const result = await this.db.query(`
+            INSERT INTO lottery_rounds (round_number, start_date, end_date, draw_date, status)
+            VALUES ($1, $2, $3, $4, 'active')
+            RETURNING *
+        `, [roundNumber, startDate, endDate, drawDate]);
+        
+        return result.rows[0];
+    }
+    
+    // اجرای قرعه‌کشی
+    async performDraw(roundId) {
+        const client = await this.db.connect();
+        
+        try {
+            await client.query('BEGIN');
+            
+            const round = await client.query(`
+                SELECT * FROM lottery_rounds WHERE id = $1 AND status = 'active'
+                FOR UPDATE
+            `, [roundId]);
+            
+            if (round.rows.length === 0) {
+                throw new Error('قرعه‌کشی نامعتبر');
+            }
+            
+            const roundData = round.rows[0];
+            
+            // دریافت تمام شرکت‌کنندگان با وزن
+            const entries = await client.query(`
+                SELECT le.*, u.username
+                FROM lottery_entries le
+                JOIN users u ON le.user_id = u.id
+                WHERE le.round_id = $1
+            `, [roundId]);
+            
+            if (entries.rows.length === 0) {
+                throw new Error('شرکت‌کننده‌ای وجود ندارد');
+            }
+            
+            // ساخت لیست وزن‌دار (هر شانس = یک ورودی در آرایه)
+            const weightedPool = [];
+            for (const entry of entries.rows) {
+                const weight = Math.ceil(entry.contribution_weight);
+                for (let i = 0; i < weight; i++) {
+                    weightedPool.push(entry);
+                }
+            }
+            
+            // انتخاب تصادفی با block hash
+            const blockHash = await this.getBlockHash();
+            const hashNum = parseInt(blockHash.substring(0, 16), 16);
+            const winnerIndex = hashNum % weightedPool.length;
+            const winner = weightedPool[winnerIndex];
+            
+            const prizeAmount = roundData.total_pool * 0.50;
+            
+            // بروزرسانی قرعه‌کشی
+            await client.query(`
+                UPDATE lottery_rounds 
+                SET winning_image_id = $1,
+                    winning_code = $2,
+                    winner_id = $3,
+                    prize_amount = $4,
+                    status = 'completed'
+                WHERE id = $5
+            `, [winner.image_id, winner.entry_code, winner.user_id, prizeAmount, roundId]);
+            
+            // بروزرسانی شرکت‌کننده برنده
+            await client.query(`
+                UPDATE lottery_entries 
+                SET is_winner = TRUE, prize_won = $1 
+                WHERE id = $2
+            `, [prizeAmount, winner.id]);
+            
+            // واریز جایزه
+            await client.query(`
+                UPDATE users SET wallet_balance = wallet_balance + $1 WHERE id = $2
+            `, [prizeAmount, winner.user_id]);
+            
+            // تراکنش جایزه
+            await client.query(`
+                INSERT INTO transactions (user_id, type, amount, reference_id, reference_type, description)
+                VALUES ($1, 'lottery_prize', $2, $3, 'lottery', $4)
+            `, [winner.user_id, prizeAmount, roundId, `جایزه قرعه‌کشی دوره ${roundData.round_number}`]);
+            
+            await client.query('COMMIT');
+            
+            // اعلام نتیجه
+            this.io.emit('lottery_result', {
+                roundNumber: roundData.round_number,
+                winner: winner.username,
+                winningCode: winner.entry_code,
+                prizeAmount,
+                totalPool: roundData.total_pool
+            });
+            
+            return {
+                winner: winner.username,
+                winningCode: winner.entry_code,
+                prizeAmount,
+                totalEntries: entries.rows.length
+            };
+            
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+    
+    // محاسبه ضریب شانس بر اساس مبلغ سرمایه‌گذاری
+    calculateWeight(contributionAmount, totalPool) {
+        // هر ۱ دلار = ۱ شانس پایه
+        // سرمایه‌گذاری بیشتر = شانس بیشتر (ضریب خطی)
+        return contributionAmount;
+    }
+}
+
+module.exports = LotteryService;
