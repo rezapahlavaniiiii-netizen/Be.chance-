@@ -1,0 +1,279 @@
+// utils/imageGenerator.js
+const { createCanvas } = require('canvas');
+const crypto = require('crypto');
+
+class RandomImageGenerator {
+    
+    // تولید تصویر تصادفی منحصربه‌فرد
+    static async generate(seed) {
+        const width = 800;
+        const height = 800;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+        
+        // ساخت RNG قابل تکرار از seed
+        const rng = this.createSeededRandom(seed);
+        
+        // انتخاب تصادفی نوع تصویر
+        const imageType = Math.floor(rng() * 5);
+        
+        switch(imageType) {
+            case 0: this.generateAbstractArt(ctx, width, height, rng); break;
+            case 1: this.generateGeometricPattern(ctx, width, height, rng); break;
+            case 2: this.generateGradientArt(ctx, width, height, rng); break;
+            case 3: this.generateParticleField(ctx, width, height, rng); break;
+            case 4: this.generateFractalPattern(ctx, width, height, rng); break;
+        }
+        
+        // تعیین rarity بر اساس الگوریتم
+        const rarity = this.calculateRarity(seed, imageType);
+        
+        return {
+            buffer: canvas.toBuffer('image/png'),
+            rarity,
+            type: imageType,
+            seed
+        };
+    }
+    
+    // RNG با قابلیت تکرار
+    static createSeededRandom(seed) {
+        let s = seed;
+        return function() {
+            s = (s * 16807 + 0) % 2147483647;
+            return (s - 1) / 2147483646;
+        };
+    }
+    
+    // هنر انتزاعی
+    static generateAbstractArt(ctx, w, h, rng) {
+        // پس‌زمینه
+        ctx.fillStyle = this.randomColor(rng);
+        ctx.fillRect(0, 0, w, h);
+        
+        // اشکال تصادفی
+        const shapes = 5 + Math.floor(rng() * 20);
+        for (let i = 0; i < shapes; i++) {
+            ctx.beginPath();
+            ctx.fillStyle = this.randomColor(rng, 0.3 + rng() * 0.5);
+            
+            const x = rng() * w;
+            const y = rng() * h;
+            const size = 20 + rng() * 200;
+            
+            if (rng() > 0.5) {
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+            } else {
+                ctx.rect(x - size/2, y - size/2, size, size * (0.5 + rng()));
+            }
+            ctx.fill();
+        }
+        
+        // خطوط تزئینی
+        const lines = Math.floor(rng() * 10);
+        for (let i = 0; i < lines; i++) {
+            ctx.beginPath();
+            ctx.strokeStyle = this.randomColor(rng, 0.6);
+            ctx.lineWidth = 1 + rng() * 5;
+            ctx.moveTo(rng() * w, rng() * h);
+            ctx.bezierCurveTo(
+                rng() * w, rng() * h,
+                rng() * w, rng() * h,
+                rng() * w, rng() * h
+            );
+            ctx.stroke();
+        }
+    }
+    
+    // الگوی هندسی
+    static generateGeometricPattern(ctx, w, h, rng) {
+        ctx.fillStyle = `hsl(${rng() * 360}, 20%, 95%)`;
+        ctx.fillRect(0, 0, w, h);
+        
+        const gridSize = 4 + Math.floor(rng() * 8);
+        const cellW = w / gridSize;
+        const cellH = h / gridSize;
+        
+        for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+                ctx.save();
+                ctx.translate(x * cellW + cellW/2, y * cellH + cellH/2);
+                ctx.rotate(rng() * Math.PI * 2);
+                
+                ctx.fillStyle = this.randomColor(rng, 0.7);
+                const shapeType = Math.floor(rng() * 4);
+                
+                switch(shapeType) {
+                    case 0: // مثلث
+                        ctx.beginPath();
+                        ctx.moveTo(0, -cellH/2.5);
+                        ctx.lineTo(-cellW/2.5, cellH/2.5);
+                        ctx.lineTo(cellW/2.5, cellH/2.5);
+                        ctx.fill();
+                        break;
+                    case 1: // دایره
+                        ctx.beginPath();
+                        ctx.arc(0, 0, cellW/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                    case 2: // مربع
+                        ctx.fillRect(-cellW/3, -cellH/3, cellW/1.5, cellH/1.5);
+                        break;
+                    case 3: // ستاره
+                        this.drawStar(ctx, 0, 0, 5, cellW/2.5, cellW/5);
+                        ctx.fill();
+                        break;
+                }
+                ctx.restore();
+            }
+        }
+    }
+    
+    // گرادیانت هنری
+    static generateGradientArt(ctx, w, h, rng) {
+        const gradient = ctx.createLinearGradient(
+            rng() * w, rng() * h,
+            rng() * w, rng() * h
+        );
+        gradient.addColorStop(0, this.randomColor(rng));
+        gradient.addColorStop(0.5, this.randomColor(rng));
+        gradient.addColorStop(1, this.randomColor(rng));
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+        
+        // لایه‌های شفاف
+        for (let i = 0; i < 5; i++) {
+            const rGrad = ctx.createRadialGradient(
+                rng() * w, rng() * h, 0,
+                rng() * w, rng() * h, 100 + rng() * 300
+            );
+            rGrad.addColorStop(0, this.randomColor(rng, 0.4));
+            rGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = rGrad;
+            ctx.fillRect(0, 0, w, h);
+        }
+    }
+    
+    // میدان ذرات
+    static generateParticleField(ctx, w, h, rng) {
+        ctx.fillStyle = `hsl(${rng() * 360}, 10%, 10%)`;
+        ctx.fillRect(0, 0, w, h);
+        
+        const particles = 100 + Math.floor(rng() * 500);
+        for (let i = 0; i < particles; i++) {
+            const x = rng() * w;
+            const y = rng() * h;
+            const size = 1 + rng() * 8;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = this.randomColor(rng, 0.5 + rng() * 0.5);
+            ctx.fill();
+            
+            // درخشش
+            if (rng() > 0.7) {
+                ctx.shadowBlur = 10 + rng() * 20;
+                ctx.shadowColor = this.randomColor(rng);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+    }
+    
+    // الگوی فراکتال
+    static generateFractalPattern(ctx, w, h, rng) {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, w, h);
+        
+        const maxIter = 50 + Math.floor(rng() * 100);
+        const zoom = 0.5 + rng() * 2;
+        const offsetX = (rng() - 0.5) * 2;
+        const offsetY = (rng() - 0.5) * 2;
+        
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+        
+        for (let px = 0; px < w; px++) {
+            for (let py = 0; py < h; py++) {
+                let x0 = (px - w/2) / (w/4) * zoom + offsetX;
+                let y0 = (py - h/2) / (h/4) * zoom + offsetY;
+                let x = 0, y = 0, iteration = 0;
+                
+                while (x*x + y*y <= 4 && iteration < maxIter) {
+                    const xTemp = x*x - y*y + x0;
+                    y = 2*x*y + y0;
+                    x = xTemp;
+                    iteration++;
+                }
+                
+                const idx = (py * w + px) * 4;
+                if (iteration === maxIter) {
+                    data[idx] = data[idx+1] = data[idx+2] = 0;
+                } else {
+                    const hue = (iteration / maxIter * 360 + rng() * 60) % 360;
+                    const [r, g, b] = this.hslToRgb(hue, 80, 50);
+                    data[idx] = r; data[idx+1] = g; data[idx+2] = b;
+                }
+                data[idx+3] = 255;
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+    
+    // محاسبه نادر بودن تصویر
+    static calculateRarity(seed, imageType) {
+        const hash = crypto.createHash('sha256').update(seed.toString()).digest('hex');
+        const rarityNum = parseInt(hash.substring(0, 8), 16) % 10000;
+        
+        if (rarityNum < 10) return 'legendary';    // 0.1%
+        if (rarityNum < 100) return 'epic';         // 0.9%
+        if (rarityNum < 500) return 'rare';         // 4%
+        if (rarityNum < 2000) return 'uncommon';    // 15%
+        return 'common';                            // 80%
+    }
+    
+    // تولید کد منحصربه‌فرد
+    static generateUniqueCode() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let code = '';
+        for (let i = 0; i < 8; i++) {
+            code += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return code;
+    }
+    
+    // کمکی: رنگ تصادفی
+    static randomColor(rng, alpha = 1) {
+        const h = rng() * 360;
+        const s = 50 + rng() * 50;
+        const l = 30 + rng() * 50;
+        return `hsla(${h}, ${s}%, ${l}%, ${alpha})`;
+    }
+    
+    // کمکی: HSL به RGB
+    static hslToRgb(h, s, l) {
+        s /= 100; l /= 100;
+        const k = n => (n + h / 30) % 12;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+        return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+    }
+    
+    // کمکی: ستاره
+    static drawStar(ctx, cx, cy, spikes, outerR, innerR) {
+        let rot = Math.PI / 2 * 3;
+        let step = Math.PI / spikes;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerR);
+        for (let i = 0; i < spikes; i++) {
+            ctx.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+            rot += step;
+            ctx.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+            rot += step;
+        }
+        ctx.closePath();
+    }
+}
+
+module.exports = RandomImageGenerator;
