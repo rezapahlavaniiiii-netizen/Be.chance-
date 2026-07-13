@@ -1,0 +1,146 @@
+-- جدول کاربران
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    wallet_balance DECIMAL(10,2) DEFAULT 0,
+    total_spent DECIMAL(10,2) DEFAULT 0,
+    avatar_url VARCHAR(500),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    is_verified BOOLEAN DEFAULT FALSE,
+    role VARCHAR(20) DEFAULT 'user'
+);
+
+-- جدول تصاویر تولید شده
+CREATE TABLE images (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    unique_code VARCHAR(12) UNIQUE NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    image_hash VARCHAR(64) NOT NULL,
+    generation_seed BIGINT NOT NULL,
+    generation_params JSONB,
+    current_owner_id UUID REFERENCES users(id),
+    original_buyer_id UUID REFERENCES users(id),
+    purchase_price DECIMAL(10,2) DEFAULT 1.00,
+    current_value DECIMAL(10,2) DEFAULT 1.00,
+    is_listed_for_sale BOOLEAN DEFAULT FALSE,
+    listing_price DECIMAL(10,2),
+    is_in_pool_buy BOOLEAN DEFAULT FALSE,
+    pool_buy_target DECIMAL(10,2),
+    pool_buy_collected DECIMAL(10,2) DEFAULT 0,
+    status VARCHAR(30) DEFAULT 'active',
+    rarity_level VARCHAR(20) DEFAULT 'common',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- جدول تراکنش‌های خرید اولیه
+CREATE TABLE purchases (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    image_id UUID REFERENCES images(id),
+    amount DECIMAL(10,2) NOT NULL,
+    payment_method VARCHAR(50),
+    payment_ref VARCHAR(255),
+    status VARCHAR(30) DEFAULT 'completed',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- جدول بازار ثانویه (فروش بین کاربران)
+CREATE TABLE marketplace_listings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    seller_id UUID REFERENCES users(id),
+    image_id UUID REFERENCES images(id),
+    asking_price DECIMAL(10,2) NOT NULL,
+    min_offer DECIMAL(10,2),
+    status VARCHAR(30) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP
+);
+
+-- جدول پیشنهادات خرید
+CREATE TABLE offers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    buyer_id UUID REFERENCES users(id),
+    listing_id UUID REFERENCES marketplace_listings(id),
+    offer_amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(30) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    responded_at TIMESTAMP
+);
+
+-- جدول خرید جمعی (Pool Buy)
+CREATE TABLE pool_buys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    image_id UUID REFERENCES images(id),
+    target_amount DECIMAL(10,2) NOT NULL,
+    collected_amount DECIMAL(10,2) DEFAULT 0,
+    initiator_id UUID REFERENCES users(id),
+    status VARCHAR(30) DEFAULT 'collecting',
+    created_at TIMESTAMP DEFAULT NOW(),
+    deadline TIMESTAMP NOT NULL
+);
+
+-- جدول مشارکت در خرید جمعی
+CREATE TABLE pool_contributions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pool_buy_id UUID REFERENCES pool_buys(id),
+    user_id UUID REFERENCES users(id),
+    amount DECIMAL(10,2) NOT NULL,
+    ownership_percentage DECIMAL(5,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- جدول دوره‌های قرعه‌کشی
+CREATE TABLE lottery_rounds (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    round_number INTEGER UNIQUE NOT NULL,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    draw_date TIMESTAMP NOT NULL,
+    total_pool DECIMAL(12,2) DEFAULT 0,
+    prize_amount DECIMAL(12,2) DEFAULT 0,
+    winning_image_id UUID REFERENCES images(id),
+    winning_code VARCHAR(12),
+    winner_id UUID REFERENCES users(id),
+    status VARCHAR(30) DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- جدول شانس‌های قرعه‌کشی هر کاربر
+CREATE TABLE lottery_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    round_id UUID REFERENCES lottery_rounds(id),
+    user_id UUID REFERENCES users(id),
+    image_id UUID REFERENCES images(id),
+    entry_code VARCHAR(12) NOT NULL,
+    contribution_weight DECIMAL(10,2) DEFAULT 1.00,
+    is_winner BOOLEAN DEFAULT FALSE,
+    prize_won DECIMAL(12,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- جدول تراکنش‌های مالی
+CREATE TABLE transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    type VARCHAR(30) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    balance_before DECIMAL(10,2),
+    balance_after DECIMAL(10,2),
+    reference_id UUID,
+    reference_type VARCHAR(50),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ایندکس‌ها برای عملکرد بهتر
+CREATE INDEX idx_images_owner ON images(current_owner_id);
+CREATE INDEX idx_images_code ON images(unique_code);
+CREATE INDEX idx_images_listed ON images(is_listed_for_sale) WHERE is_listed_for_sale = TRUE;
+CREATE INDEX idx_marketplace_status ON marketplace_listings(status);
+CREATE INDEX idx_lottery_round ON lottery_entries(round_id);
+CREATE INDEX idx_lottery_user ON lottery_entries(user_id);
+CREATE INDEX idx_transactions_user ON transactions(user_id, created_at DESC);
